@@ -104,6 +104,39 @@ shared/       → Cross-cutting: API client, shadcn UI components, utils
 - shadcn components are added via `bunx shadcn@latest add <component>` and land in `src/shared/ui/`.
 - `components.json` is configured with aliases pointing to `@/shared/ui` and `@/shared/lib/utils`.
 
+## Git workflow
+
+Проект использует **GitHub Flow**.
+
+### Правила
+
+- `main` — всегда стабильная, деплоябельная ветка. Прямые коммиты в `main` запрещены.
+- Любая новая работа — в отдельной ветке, созданной от актуального `main`.
+- Ветка живёт столько, сколько нужно для одной фичи / фикса. Мёртвые ветки удаляются после мержа.
+- Слияние в `main` — только через Pull Request (с ревью или self-merge).
+- После мержа PR ветку удалять (`git branch -d <branch>`).
+
+### Именование веток
+
+```
+feat/<short-description>    # новая функциональность
+fix/<short-description>     # исправление бага
+chore/<short-description>   # зависимости, конфиги, CI
+docs/<short-description>    # только документация
+refactor/<short-description>
+```
+
+`<short-description>` — kebab-case, коротко, на английском. Примеры:
+
+```
+feat/main-screen
+feat/transaction-filters
+fix/register-form-validation
+chore/update-dependencies
+```
+
+---
+
 ## Git commits
 
 Используй **Conventional Commits** (`<type>(<scope>): <description>`).
