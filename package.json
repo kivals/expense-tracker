@@ -1,0 +1,19 @@
+{
+  "name": "expense-tracker",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:web": "bun --filter @expense-tracker/web dev",
+    "dev:api": "bun --filter @expense-tracker/api start:dev",
+    "build": "bun --filter '*' build",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "trustedDependencies": [
+    "@nestjs/core",
+    "unrs-resolver"
+  ]
+}

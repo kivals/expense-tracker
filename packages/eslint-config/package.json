@@ -1,0 +1,7 @@
+{
+  "name": "@expense-tracker/eslint-config",
+  "version": "0.0.1",
+  "private": true,
+  "main": "base.js",
+  "files": ["base.js", "next.js", "nest.js"]
+}
