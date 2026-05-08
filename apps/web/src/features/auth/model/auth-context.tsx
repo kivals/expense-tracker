@@ -9,8 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import type { PublicUser } from "@expense-tracker/shared-types";
-
-const TOKEN_KEY = "auth_token";
+import {
+  AUTH_TOKEN_KEY,
+  clearAuthToken,
+  setAuthToken,
+} from "@/shared/api/auth-storage";
+import { getMe } from "@/features/auth/api/auth-api";
+import { UnauthorizedError } from "@/shared/api/client";
 
 type AuthState = {
   user: PublicUser | null;
@@ -33,23 +38,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      // Токен есть, но user восстановить из localStorage нельзя без /me эндпоинта.
-      // Храним минимум — только признак авторизации.
-      setState({ user: null, token, isLoading: false });
-    } else {
-      setState((s) => ({ ...s, isLoading: false }));
+    let cancelled = false;
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!token) {
+      setState({ user: null, token: null, isLoading: false });
+      return;
     }
+    setState({ user: null, token, isLoading: true });
+    getMe()
+      .then((user) => {
+        if (cancelled) return;
+        setState({ user, token, isLoading: false });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (err instanceof UnauthorizedError) {
+          clearAuthToken();
+        }
+        setState({ user: null, token: null, isLoading: false });
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      setState({ user: null, token: null, isLoading: false });
+    }
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
   }, []);
 
   const setAuth = useCallback((token: string, user: PublicUser) => {
-    localStorage.setItem(TOKEN_KEY, token);
+    setAuthToken(token);
     setState({ user, token, isLoading: false });
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY);
+    clearAuthToken();
     setState({ user: null, token: null, isLoading: false });
   }, []);
 

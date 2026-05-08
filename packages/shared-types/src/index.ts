@@ -46,7 +46,14 @@ export type TransactionsAggregate = {
   balance: string;
 };
 
+export type Pagination = {
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export type TransactionsListResponse = {
   items: Transaction[];
   aggregate: TransactionsAggregate;
+  pagination: Pagination;
 };
