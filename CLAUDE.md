@@ -174,6 +174,52 @@ refactor(shared-types): replace Expense with Transaction types
 docs: add commit conventions to CLAUDE.md
 ```
 
+---
+
+## Pull Requests
+
+### Подготовка
+
+Перед созданием PR всегда смотреть полный diff от `main`:
+
+```bash
+git diff main...HEAD --stat        # список затронутых файлов
+git diff main...HEAD               # полный diff для описания
+git log main..HEAD --oneline       # список коммитов в ветке
+```
+
+### Заголовок
+
+Следует **Conventional Commits**: `<type>(<scope>): <description>`.  
+Примеры:
+
+```
+feat: add dashboard screen with transactions and pagination
+feat(api): add GET /auth/me endpoint
+fix(web): reset auth context on 401 mid-session
+```
+
+### Тело PR (структура)
+
+```markdown
+## Summary
+- что реализовано (bullet points)
+
+## API changes
+- новые / изменённые endpoints (если есть)
+
+## Test plan
+- [ ] шаги для ручной проверки
+```
+
+### Правила
+
+- Перед `gh pr create` убедиться, что ветка запушена: `git push -u origin <branch>`.
+- После мержа PR — удалить ветку: `git branch -d <branch>`.
+- Один PR — одна логическая единица: не смешивать несвязанные фичи.
+
+---
+
 ### Tailwind CSS v4
 
 - No `tailwind.config.ts` — content scanning is automatic in v4.
