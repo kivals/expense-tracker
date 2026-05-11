@@ -1,78 +1,78 @@
 # CLAUDE.md — apps/api
 
-Backend instructions for Claude Code. See root `CLAUDE.md` for project-wide conventions.
+Инструкции для Claude Code по работе с бэкендом. Общие соглашения проекта — в корневом `CLAUDE.md`.
 
-## Stack
+## Стек
 
-- **Framework:** NestJS 11
+- **Фреймворк:** NestJS 11
 - **ORM:** Prisma 6
-- **Database:** PostgreSQL 16
-- **Language:** TypeScript
-- **Pattern:** CQRS (via `@nestjs/cqrs`) for queries and commands
+- **База данных:** PostgreSQL 16
+- **Язык:** TypeScript
+- **Паттерн:** CQRS (через `@nestjs/cqrs`) для запросов и команд
 
-## Commands
+## Команды
 
-Run from the **repo root** unless noted.
+Запускать из **корня репозитория**, если не указано иное.
 
 ```bash
-bun run dev:api                          # start dev server http://localhost:3001
-bun --filter @expense-tracker/api typecheck
+bun run dev:api                              # запустить dev-сервер http://localhost:3001
+bun --filter @expense-tracker/api typecheck  # проверка типов
 
-# Database — run from apps/api/
-bun run prisma:migrate   # create migration and apply to DB
-bun run prisma:generate  # regenerate @prisma/client after schema changes
-bun run prisma:studio    # open Prisma Studio GUI
+# База данных — запускать из apps/api/
+bun run prisma:migrate   # создать миграцию и применить к БД
+bun run prisma:generate  # перегенерировать @prisma/client после изменений схемы
+bun run prisma:studio    # открыть Prisma Studio
 ```
 
-## TypeScript config
+## TypeScript-конфиг
 
-Uses `packages/tsconfig/nestjs.json`: `module: commonjs`, `emitDecoratorMetadata: true`. This is incompatible with the Next.js config — never mix them.
+Используется `packages/tsconfig/nestjs.json`: `module: commonjs`, `emitDecoratorMetadata: true`. Несовместим с конфигом Next.js — никогда не смешивать.
 
 ---
 
 ## Prisma
 
-Schema: `apps/api/prisma/schema.prisma`.
+Схема: `apps/api/prisma/schema.prisma`.
 
-After any schema change:
-1. `bun run prisma:migrate` — creates a migration file and updates the DB.
-2. `bun run prisma:generate` — regenerates `@prisma/client`.
+После любого изменения схемы:
+1. `bun run prisma:migrate` — создаёт файл миграции и применяет изменения к БД.
+2. `bun run prisma:generate` — перегенерирует `@prisma/client`.
 
-`PrismaService` (`src/prisma/prisma.service.ts`) extends `PrismaClient` and is registered as a `@Global()` module — inject it anywhere in the API without re-importing `PrismaModule`.
+`PrismaService` (`src/prisma/prisma.service.ts`) расширяет `PrismaClient` и зарегистрирован как `@Global()`-модуль — его можно инжектировать в любое место без повторного импорта `PrismaModule`.
 
 ---
 
-## Module structure
+## Структура модуля
 
-Each domain module lives in `src/<module>/` and follows this layout:
+Каждый доменный модуль находится в `src/<module>/` и следует такой структуре:
 
 ```
 <module>/
-  dto/           → request DTOs (validation via class-validator + class-transformer)
-  commands/      → CQRS commands + handlers (writes)
+  dto/           → DTO для запросов (валидация через class-validator + class-transformer)
+  commands/      → CQRS-команды и хендлеры (запись)
     handlers/
-  queries/       → CQRS queries + handlers (reads)
+  queries/       → CQRS-запросы и хендлеры (чтение)
     handlers/
   <module>.controller.ts
-  <module>.service.ts    → thin orchestration layer, delegates to commandBus / queryBus
+  <module>.service.ts    → тонкий слой оркестрации, делегирует в commandBus / queryBus
   <module>.module.ts
 ```
 
-### CQRS conventions
+### Соглашения CQRS
 
-- **Commands** handle writes (create, update, delete) — throw `HttpException` (or NestJS built-ins) on failure.
-- **Queries** handle reads — always return typed response objects, never throw on empty results (return empty arrays / null).
-- The service layer only calls `commandBus.execute()` / `queryBus.execute()` and forwards the result — no business logic in the service itself.
+- **Команды** обрабатывают запись (create, update, delete) — при ошибке выбрасывают `HttpException` или встроенные исключения NestJS.
+- **Запросы** обрабатывают чтение — всегда возвращают типизированные объекты-ответы, при пустом результате не бросают исключений (возвращают пустые массивы / null).
+- Сервисный слой только вызывает `commandBus.execute()` / `queryBus.execute()` и пробрасывает результат — никакой бизнес-логики в сервисе.
 
 ---
 
-## Auth
+## Авторизация
 
-- JWT strategy: `src/auth/strategies/jwt.strategy.ts` — validates the bearer token and populates `req.user` with `PublicUser`.
-- Guard: `JwtAuthGuard` (`src/auth/guards/jwt-auth.guard.ts`) — apply with `@UseGuards(JwtAuthGuard)`.
-- Current user: inject via `@CurrentUser()` decorator (`src/common/decorators/current-user.decorator.ts`).
+- JWT-стратегия: `src/auth/strategies/jwt.strategy.ts` — валидирует bearer-токен и кладёт `PublicUser` в `req.user`.
+- Гард: `JwtAuthGuard` (`src/auth/guards/jwt-auth.guard.ts`) — применять через `@UseGuards(JwtAuthGuard)`.
+- Текущий пользователь: инжектировать через декоратор `@CurrentUser()` (`src/common/decorators/current-user.decorator.ts`).
 
-Protected route example:
+Пример защищённого роута:
 
 ```ts
 @UseGuards(JwtAuthGuard)
@@ -84,14 +84,14 @@ me(@CurrentUser() user: PublicUser): PublicUser {
 
 ---
 
-## Validation
+## Валидация
 
-All DTOs use `class-validator` decorators. `ValidationPipe` is applied globally with `transform: true` (enables `@Type()` coercions from `class-transformer`).
+Все DTO используют декораторы `class-validator`. `ValidationPipe` применяется глобально с `transform: true` (включает приведение типов через `class-transformer`).
 
-Query params that must be numbers need `@Type(() => Number)` in addition to `@IsInt()` / `@IsNumber()`.
+Query-параметры, которые должны быть числами, требуют `@Type(() => Number)` вместе с `@IsInt()` / `@IsNumber()`.
 
 ---
 
-## Response types
+## Типы ответов
 
-Types that cross the API boundary (request payloads and response shapes) live in `packages/shared-types/src/index.ts`. Import them from `@expense-tracker/shared-types`.
+Типы, пересекающие границу API (тела запросов и формы ответов), находятся в `packages/shared-types/src/index.ts`. Импортировать из `@expense-tracker/shared-types`.

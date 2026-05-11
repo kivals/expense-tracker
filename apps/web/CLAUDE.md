@@ -1,99 +1,99 @@
 # CLAUDE.md — apps/web
 
-Frontend instructions for Claude Code. See root `CLAUDE.md` for project-wide conventions.
+Инструкции для Claude Code по работе с фронтендом. Общие соглашения проекта — в корневом `CLAUDE.md`.
 
-## Stack
+## Стек
 
-- **Framework:** Next.js 16 (App Router)
+- **Фреймворк:** Next.js 16 (App Router)
 - **UI:** React 19, Tailwind CSS v4, shadcn/ui
-- **Forms:** react-hook-form + zod
-- **Language:** TypeScript
+- **Формы:** react-hook-form + zod
+- **Язык:** TypeScript
 
-## Commands
+## Команды
 
-Run from the **repo root**.
+Запускать из **корня репозитория**.
 
 ```bash
-bun run dev:web                          # start dev server http://localhost:3000
-bun --filter @expense-tracker/web typecheck
+bun run dev:web                              # запустить dev-сервер http://localhost:3000
+bun --filter @expense-tracker/web typecheck  # проверка типов
 ```
 
-## TypeScript config
+## TypeScript-конфиг
 
-Uses `packages/tsconfig/nextjs.json`: `module: ESNext`, `moduleResolution: bundler`. This is incompatible with NestJS config — never mix them.
+Используется `packages/tsconfig/nextjs.json`: `module: ESNext`, `moduleResolution: bundler`. Несовместим с конфигом NestJS — никогда не смешивать.
 
 ---
 
-## Architecture: Feature Slice Design
+## Архитектура: Feature Slice Design
 
-`apps/web/src/` follows **Feature Slice Design** (FSD). Layers from high to low:
+`apps/web/src/` следует **Feature Slice Design** (FSD). Слои от высшего к низшему:
 
 ```
-app/          → Next.js App Router — thin page.tsx shells only
-views/        → Full page components composed from features + widgets
-              (named views/ to avoid conflict with Next.js pages/)
-features/     → User-facing functionality slices
+app/          → Next.js App Router — только тонкие page.tsx-оболочки
+views/        → Полные страничные компоненты, составленные из features + widgets
+              (называется views/, а не pages/ — конфликт с Next.js Pages Router)
+features/     → Слайсы пользовательской функциональности
   <slice>/
-    api/      → fetch calls for this feature
-    model/    → state, context, hooks, zod schemas
-    ui/       → components used only within this feature
-widgets/      → Complex reusable compositions (header-nav, etc.)
-entities/     → Business entity components/hooks
-shared/       → Cross-cutting utilities
-  api/        → Base fetch client (client.ts) and auth-storage.ts
-  ui/         → All shadcn/ui components
-  lib/        → Utils (utils.ts with cn())
-  hooks/      → Shared React hooks
+    api/      → fetch-вызовы для этого слайса
+    model/    → состояние, контексты, хуки, zod-схемы
+    ui/       → компоненты, используемые только внутри этого слайса
+widgets/      → Сложные переиспользуемые композиции (header-nav и т.д.)
+entities/     → Компоненты и хуки бизнес-сущностей
+shared/       → Сквозные утилиты
+  api/        → Базовый fetch-клиент (client.ts) и auth-storage.ts
+  ui/         → Все компоненты shadcn/ui
+  lib/        → Утилиты (utils.ts с cn())
+  hooks/      → Общие React-хуки
 ```
 
-### Import rules
+### Правила импортов
 
-- Upper layers may import from lower layers; **lower layers must never import from upper**.
-- `app/` pages import **only** from `views/`. Never import features, widgets, or shared directly in `app/`.
-- `features/<slice>` may import from `shared/` and `entities/`, not from other features or widgets.
-- `widgets/` may import from `features/`, `entities/`, and `shared/`.
+- Верхние слои могут импортировать из нижних; **нижние слои никогда не импортируют из верхних**.
+- Страницы в `app/` импортируют **только** из `views/`. Напрямую импортировать features, widgets или shared в `app/` запрещено.
+- `features/<slice>` может импортировать из `shared/` и `entities/`, но не из других features или widgets.
+- `widgets/` может импортировать из `features/`, `entities/` и `shared/`.
 
-### Adding a new feature slice
+### Добавление нового слайса
 
 ```
 features/<name>/
-  api/        → e.g. <name>-api.ts
-  model/      → e.g. use-<name>.ts
-  ui/         → e.g. <name>-form.tsx
+  api/        → например, <name>-api.ts
+  model/      → например, use-<name>.ts
+  ui/         → например, <name>-form.tsx
 ```
 
-If the feature needs a full page, create `views/<name>/ui/<name>-page.tsx` and wire it in `app/<name>/page.tsx`.
+Если фиче нужна полная страница — создать `views/<name>/ui/<name>-page.tsx` и подключить в `app/<name>/page.tsx`.
 
 ---
 
 ## Tailwind CSS v4
 
-- No `tailwind.config.ts` — content scanning is automatic.
-- PostCSS plugin: `@tailwindcss/postcss` (not `tailwindcss`).
-- Entry point: `src/app/globals.css` — uses `@import "tailwindcss"` (not `@tailwind` directives).
+- Файла `tailwind.config.ts` нет — сканирование контента автоматическое.
+- PostCSS-плагин: `@tailwindcss/postcss` (не `tailwindcss`).
+- Точка входа: `src/app/globals.css` — использует `@import "tailwindcss"` (не директивы `@tailwind`).
 
 ## shadcn/ui
 
-Add components via:
+Добавлять компоненты командой:
 
 ```bash
 bunx shadcn@latest add <component>
 ```
 
-Components land in `src/shared/ui/`. `components.json` aliases point to `@/shared/ui` and `@/shared/lib/utils`.
+Компоненты попадают в `src/shared/ui/`. Алиасы в `components.json` указывают на `@/shared/ui` и `@/shared/lib/utils`.
 
 ---
 
-## API client
+## API-клиент
 
-`src/shared/api/client.ts` — `apiRequest<T>(path, options)`:
-- Automatically attaches `Authorization: Bearer <token>` from `localStorage` (via `auth-storage.ts`).
-- Throws `UnauthorizedError` (subclass of `ApiError`) on 401 and dispatches `CustomEvent("auth:unauthorized")` — `AuthProvider` listens for this event and resets auth state.
-- Throws `ApiError` on other non-2xx responses.
-- Returns `undefined` on 204.
+`src/shared/api/client.ts` — функция `apiRequest<T>(path, options)`:
+- Автоматически добавляет заголовок `Authorization: Bearer <token>` из `localStorage` (через `auth-storage.ts`).
+- При 401 выбрасывает `UnauthorizedError` (подкласс `ApiError`) и диспатчит `CustomEvent("auth:unauthorized")` — `AuthProvider` слушает это событие и сбрасывает состояние авторизации.
+- При других не-2xx ответах выбрасывает `ApiError`.
+- При статусе 204 возвращает `undefined`.
 
-Token helpers live in `src/shared/api/auth-storage.ts` (SSR-safe: guards against `typeof window === "undefined"`).
+Хелперы для работы с токеном находятся в `src/shared/api/auth-storage.ts` (SSR-безопасны: проверяют `typeof window === "undefined"`).
 
-## Auth
+## Авторизация
 
-`AuthProvider` (`features/auth/model/auth-context.tsx`) bootstraps the session on mount by calling `GET /auth/me`. Use `useRequireAuth()` in views/pages to guard protected routes — it redirects to `/login` when there is no token.
+`AuthProvider` (`features/auth/model/auth-context.tsx`) восстанавливает сессию при монтировании через вызов `GET /auth/me`. В views и pages для защиты маршрутов использовать `useRequireAuth()` — он редиректит на `/login` при отсутствии токена.
