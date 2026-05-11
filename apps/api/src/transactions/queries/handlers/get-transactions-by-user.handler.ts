@@ -23,8 +23,18 @@ export class GetTransactionsByUserHandler
       where.date = { gte: start, lt: end };
     }
 
-    const [items, agg] = await this.prisma.$transaction([
-      this.prisma.transaction.findMany({ where, orderBy: { date: 'desc' } }),
+    const page = query.page > 0 ? query.page : 1;
+    const limit = query.limit > 0 ? query.limit : 20;
+    const skip = (page - 1) * limit;
+
+    const [items, total, agg] = await this.prisma.$transaction([
+      this.prisma.transaction.findMany({
+        where,
+        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.transaction.count({ where }),
       this.prisma.transaction.groupBy({
         by: ['type'],
         where,
@@ -48,6 +58,7 @@ export class GetTransactionsByUserHandler
         updatedAt: t.updatedAt.toISOString(),
       })),
       aggregate: { totalIncome, totalExpense, balance },
+      pagination: { total, page, limit },
     };
   }
 }

@@ -25,7 +25,13 @@ export class TransactionsService {
 
   findAll(userId: string, filter: ListTransactionsQueryDto): Promise<TransactionsListResponse> {
     return this.queryBus.execute(
-      new GetTransactionsByUserQuery(userId, filter.month, filter.year),
+      new GetTransactionsByUserQuery(
+        userId,
+        filter.month,
+        filter.year,
+        filter.page ?? 1,
+        filter.limit ?? 20,
+      ),
     );
   }
 
